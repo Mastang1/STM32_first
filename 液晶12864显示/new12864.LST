@@ -1,0 +1,425 @@
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 1   
+
+
+C51 COMPILER V9.55, COMPILATION OF MODULE NEW12864
+OBJECT MODULE PLACED IN new12864.OBJ
+COMPILER INVOKED BY: D:\App\keil\C51\BIN\C51.EXE new12864.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          
+   2          #include "reg51.h"
+   3          #include "stdio.h"
+   4          
+   5          sbit   RST   = P3^0;
+   6          sbit   CD    = P3^1;  // RS
+   7          sbit   RW    = P3^4;
+   8          sbit   E     = P3^3;
+   9          
+  10          sbit  BUSY   = P1^7;
+  11          
+  12          #define uchar  unsigned char 
+  13          #define uint   unsigned int
+  14          
+  15          code uchar pho1[]={"????????????!!"};
+  16          
+  17          code uchar table_8[]=
+  18            {0x00,0xff,0xff,0xff,0x00,0xff,0xff,0xff,0x00,0xff,0xff,0xff,0x00,0xff,0xff,0xff};
+  19          
+  20           void Delay(uint t)
+  21           {
+  22   1        while(t!=0) t--;
+  23   1       }
+  24          
+  25           
+  26          void CHECK_BUSY(void)
+  27           {uchar dat;
+  28   1          do
+  29   1          {
+  30   2          P1=0XFF;
+  31   2          CD=0;
+  32   2          RW=1;
+  33   2          E=1;
+  34   2            dat=P1;
+  35   2            E=0;
+  36   2          } while(dat&0x80);
+  37   1       }
+  38          
+  39           void WCOM(uchar cmd)
+  40           { CHECK_BUSY();
+  41   1          
+  42   1         CD=0;
+  43   1      
+  44   1         RW=0;
+  45   1         E=1;
+  46   1         Delay(1);
+  47   1         P1=cmd;
+  48   1         Delay(1);
+  49   1         E=0;
+  50   1       
+  51   1         
+  52   1       }
+  53          
+  54          
+  55          
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 2   
+
+  56            void WDATA(uchar dat)
+  57           { 
+  58   1         CHECK_BUSY(); 
+  59   1         CD=1;
+  60   1      
+  61   1         RW=0;
+  62   1         E=1; 
+  63   1         Delay(1);
+  64   1         P1=dat;
+  65   1         Delay(1);
+  66   1         E=0;
+  67   1       }
+  68          
+  69          
+  70           void  INI()
+  71           {  RST=0;
+  72   1          Delay(100);
+  73   1        RST=1;
+  74   1        Delay(8000);
+  75   1        WCOM(0x30);    //funtion set 8 bit
+  76   1        Delay(10);
+  77   1          WCOM(0x30);    //   
+  78   1          Delay(10);
+  79   1        WCOM(0x0c);    // display on
+  80   1          Delay(10);
+  81   1        WCOM(0x01);    // clear display
+  82   1          Delay(10);
+  83   1        WCOM(0x06);    //ENTRY MODE SET
+  84   1          Delay(100);
+  85   1      
+  86   1        }
+  87          
+  88          void clear_D(void)
+  89              { WCOM(0x30);    //funtion set 8 bit
+  90   1              WCOM(0x01);    // clear display
+  91   1          }
+  92          
+  93          
+  94          
+  95          void clear_G(void)  //write at graphic mode
+  96            {  uchar x,y;
+  97   1             WCOM(0x34);    //   extened   grahpic on
+  98   1           
+  99   1             for(y=0;y<32;y++)
+ 100   1               {
+ 101   2            WCOM(0x80+y);
+ 102   2                WCOM(0x80);
+ 103   2                for(x=0;x<15;x++)
+ 104   2                   {WDATA(0x00);
+ 105   3                    WDATA(0x00);
+ 106   3             }
+ 107   2      
+ 108   2             }
+ 109   1            WCOM(0x36);
+ 110   1          WCOM(0x30);
+ 111   1        }
+ 112          
+ 113          
+ 114           
+ 115          void clear(void)
+ 116            {clear_G();
+ 117   1         clear_D();
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 3   
+
+ 118   1        }
+ 119          
+ 120           
+ 121          
+ 122          
+ 123          
+ 124          
+ 125            void full_dotmatrix_AS_GRAPHIC(uchar dat1,dat2)  //write at graphic mode
+ 126            {  uchar x,y;
+ 127   1             WCOM(0x34);    //   extened   grahpic on
+ 128   1          
+ 129   1             for(y=0;y<17;y++)
+ 130   1               {
+ 131   2            WCOM(0x80+y);
+ 132   2                WCOM(0x80);
+ 133   2                y++;
+ 134   2                for(x=0;x<13;x++)
+ 135   2                   {WDATA(dat1);
+ 136   3                    WDATA(dat1);
+ 137   3      
+ 138   3                   }
+ 139   2                WCOM(0x80+y);
+ 140   2                WCOM(0x80);
+ 141   2                for(x=0;x<13;x++)
+ 142   2                   {WDATA(dat2);
+ 143   3                    WDATA(dat2);
+ 144   3                   }
+ 145   2      
+ 146   2             }
+ 147   1              WCOM(0x36);
+ 148   1              WCOM(0X30);
+ 149   1        }
+ 150              
+ 151          
+ 152          
+ 153          
+ 154          
+ 155          
+ 156          
+ 157          
+ 158          
+ 159            void FRAME(void)
+ 160             {uchar x,y;
+ 161   1          WCOM(0X34);
+ 162   1          WCOM(0X80);
+ 163   1          WCOM(0X80);
+ 164   1          for(x=0;x<13;x++)
+ 165   1            {WDATA(0xff);
+ 166   2                   WDATA(0xff);
+ 167   2                   }    
+ 168   1          for(y=1;y<15;y++)
+ 169   1              { WCOM(0X80+y);    //x
+ 170   2                WCOM(0X80);    //y
+ 171   2      
+ 172   2                WDATA(0x80);
+ 173   2                WDATA(0x00);
+ 174   2      
+ 175   2      
+ 176   2                WCOM(0X80+y);    //x
+ 177   2                WCOM(0X80+12);    //y
+ 178   2            WDATA(0x00);
+ 179   2                WDATA(0x01);
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 4   
+
+ 180   2               }
+ 181   1          WCOM(0X80+15);
+ 182   1          WCOM(0X80);
+ 183   1          for(x=0;x<13;x++)
+ 184   1            {WDATA(0xff);
+ 185   2                   WDATA(0xff);
+ 186   2                   }
+ 187   1          WCOM(0X36);
+ 188   1        WCOM(0X30);
+ 189   1         }
+ 190          
+ 191           void WRITE_CGRAM(void)
+ 192             { uchar i;
+ 193   1           WCOM(0X34);
+ 194   1           WCOM(0X02);
+ 195   1           WCOM(0x30);
+ 196   1           WCOM(0x40);// set CGRAM ADDRESS
+ 197   1           for(i=0;i<16;i++)   // 0000H ???
+ 198   1             { WDATA(0XFF);
+ 199   2               WDATA(0XFF);
+ 200   2             } 
+ 201   1              
+ 202   1             
+ 203   1        //     WCOM(0x40+16);                    // 0002H ??2 +Dn
+ 204   1               WDATA(0X00);  //Pn
+ 205   1               WDATA(0X00);  //Pn
+ 206   1               WDATA(0XFF);  //A
+ 207   1               WDATA(0XFF);  //A
+ 208   1               WDATA(0X00);  //F
+ 209   1               WDATA(0X00);  //F 
+ 210   1               WDATA(0XFF);  //B
+ 211   1               WDATA(0XFF);  //B
+ 212   1               WDATA(0XFF);  //G
+ 213   1               WDATA(0XFF);  //G
+ 214   1               WDATA(0XFF);  //E
+ 215   1               WDATA(0XFF);  //E
+ 216   1               WDATA(0X00);  //C
+ 217   1               WDATA(0X00);  //C
+ 218   1               WDATA(0XFF);  //D
+ 219   1               WDATA(0XFF);  //D
+ 220   1               WDATA(0XFF);  //Dn
+ 221   1               WDATA(0XFF);  //Dn
+ 222   1               WDATA(0XFF);  //A
+ 223   1               WDATA(0XFF);  //A
+ 224   1               WDATA(0X00);  //F
+ 225   1               WDATA(0X00);  //F 
+ 226   1               WDATA(0XFF);  //B
+ 227   1               WDATA(0XFF);  //B
+ 228   1               WDATA(0XFF);  //G
+ 229   1               WDATA(0XFF);  //G
+ 230   1               WDATA(0XFF);  //E
+ 231   1               WDATA(0XFF);  //E
+ 232   1               WDATA(0X00);  //C
+ 233   1               WDATA(0X00);  //C
+ 234   1               WDATA(0XFF);  //D
+ 235   1               WDATA(0XFF);  //D
+ 236   1      
+ 237   1      
+ 238   1         //      WCOM(0x40+16*2);              //004  ?? 5+Pn
+ 239   1        
+ 240   1              WDATA(0Xff);  //Pn
+ 241   1               WDATA(0Xff);  //Pn
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 5   
+
+ 242   1               WDATA(0XFF);  //A
+ 243   1               WDATA(0XFF);  //A
+ 244   1               WDATA(0Xff);  //F
+ 245   1               WDATA(0Xff);  //F 
+ 246   1               WDATA(0X00);  //B
+ 247   1               WDATA(0X00);  //B
+ 248   1               WDATA(0XFF);  //G
+ 249   1               WDATA(0XFF);  //G
+ 250   1               WDATA(0X00);  //E
+ 251   1               WDATA(0X00);  //E
+ 252   1               WDATA(0Xff);  //C
+ 253   1               WDATA(0Xff);  //C
+ 254   1               WDATA(0XFF);  //D
+ 255   1               WDATA(0XFF);  //D
+ 256   1               WDATA(0X00);  //Dn
+ 257   1               WDATA(0X00);  //Dn
+ 258   1               WDATA(0XFF);  //A
+ 259   1               WDATA(0XFF);  //A
+ 260   1               WDATA(0Xff);  //F
+ 261   1               WDATA(0Xff);  //F 
+ 262   1               WDATA(0X00);  //B
+ 263   1               WDATA(0X00);  //B
+ 264   1               WDATA(0XFF);  //G
+ 265   1               WDATA(0XFF);  //G
+ 266   1               WDATA(0X00);  //E
+ 267   1               WDATA(0X00);  //E
+ 268   1               WDATA(0Xff);  //C
+ 269   1               WDATA(0Xff);  //C
+ 270   1               WDATA(0XFF);  //D
+ 271   1               WDATA(0XFF);  //D
+ 272   1      
+ 273   1          //     WCOM(0x40+16*3);                             //006 ??8 
+ 274   1      
+ 275   1              WDATA(0X00);  //Pn
+ 276   1               WDATA(0X00);  //Pn
+ 277   1               WDATA(0XFF);  //A
+ 278   1               WDATA(0XFF);  //A
+ 279   1               WDATA(0Xff);  //F
+ 280   1               WDATA(0Xff);  //F 
+ 281   1               WDATA(0Xff);  //B
+ 282   1               WDATA(0Xff);  //B
+ 283   1               WDATA(0XFF);  //G
+ 284   1               WDATA(0XFF);  //G
+ 285   1               WDATA(0Xff);  //E
+ 286   1               WDATA(0Xff);  //E
+ 287   1               WDATA(0Xff);  //C
+ 288   1               WDATA(0Xff);  //C
+ 289   1               WDATA(0XFF);  //D
+ 290   1               WDATA(0XFF);  //D
+ 291   1               WDATA(0X00);  //Dn
+ 292   1               WDATA(0X00);  //Dn
+ 293   1               WDATA(0XFF);  //A
+ 294   1               WDATA(0XFF);  //A
+ 295   1               WDATA(0Xff);  //F
+ 296   1               WDATA(0Xff);  //F 
+ 297   1               WDATA(0Xff);  //B
+ 298   1               WDATA(0Xff);  //B
+ 299   1               WDATA(0XFF);  //G
+ 300   1               WDATA(0XFF);  //G
+ 301   1               WDATA(0Xff);  //E
+ 302   1               WDATA(0Xff);  //E
+ 303   1               WDATA(0Xff);  //C
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 6   
+
+ 304   1               WDATA(0Xff);  //C
+ 305   1               WDATA(0XFF);  //D
+ 306   1               WDATA(0XFF);  //D      
+ 307   1      
+ 308   1      
+ 309   1      
+ 310   1         }
+ 311            
+ 312          
+ 313            void write_dotmatirx_AS_DDRAM(uchar pho[],n)
+ 314             { uchar i;
+ 315   1            WCOM(0x30);
+ 316   1            WCOM(0x80);
+ 317   1          for(i=0;i<(n*2);i++)
+ 318   1           { WDATA(pho[i]);
+ 319   2          i++;
+ 320   2          WDATA(pho[i]);
+ 321   2           }
+ 322   1         }
+ 323          
+ 324             void write_segment_as_DDRAM(uchar  CGRAM_CODE_H,CGRAM_CODE_L)
+ 325             {  WCOM(0X30);
+ 326   1            Delay(1);
+ 327   1            WCOM(0X90+13);
+ 328   1          WDATA(CGRAM_CODE_H);
+ 329   1          WDATA(CGRAM_CODE_L);
+ 330   1      
+ 331   1          WDATA(CGRAM_CODE_H);
+ 332   1          WDATA(CGRAM_CODE_L);
+ 333   1      
+ 334   1         }
+ 335             
+ 336          
+ 337            void main(void)
+ 338            {  INI();
+ 339   1           
+ 340   1           while(1)
+ 341   1           {WRITE_CGRAM();
+ 342   2            clear();
+ 343   2            
+ 344   2            full_dotmatrix_AS_GRAPHIC(0xff,0xff);
+ 345   2            write_segment_as_DDRAM(0X00,0X00);  //quan xian
+ 346   2            Delay(50000);
+ 347   2          Delay(50000);
+ 348   2          Delay(50000);
+ 349   2          clear();
+ 350   2      
+ 351   2        
+ 352   2          FRAME();
+ 353   2              write_segment_as_DDRAM(0X00,0X02);  //2
+ 354   2            Delay(50000);
+ 355   2          Delay(50000);
+ 356   2          Delay(50000);
+ 357   2      
+ 358   2          clear();
+ 359   2          
+ 360   2          full_dotmatrix_AS_GRAPHIC(0xff,0x00);
+ 361   2            write_segment_as_DDRAM(0X00,0X04);  //5
+ 362   2          Delay(50000);
+ 363   2          Delay(50000);
+ 364   2          Delay(50000);
+ 365   2          Delay(50000);
+C51 COMPILER V9.55   NEW12864                                                              08/20/2017 17:22:31 PAGE 7   
+
+ 366   2      
+ 367   2          clear();
+ 368   2          full_dotmatrix_AS_GRAPHIC(0xaa,0xaa);
+ 369   2            write_segment_as_DDRAM(0X00,0X06);  //8
+ 370   2          Delay(50000);
+ 371   2          Delay(50000);
+ 372   2          Delay(50000);
+ 373   2          Delay(50000);
+ 374   2      
+ 375   2            clear();
+ 376   2          full_dotmatrix_AS_GRAPHIC(0xaa,0x55);
+ 377   2          Delay(50000);
+ 378   2          Delay(50000);
+ 379   2          Delay(50000);
+ 380   2          Delay(50000);
+ 381   2      
+ 382   2          clear();
+ 383   2              write_dotmatirx_AS_DDRAM(pho1,13);
+ 384   2          Delay(50000);
+ 385   2          Delay(50000);
+ 386   2          Delay(50000);
+ 387   2          Delay(50000);
+ 388   2      
+ 389   2           }
+ 390   1        }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    885    ----
+   CONSTANT SIZE    =     29    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
